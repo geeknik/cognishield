@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Cognitive Honeypot Detector",
+  "name": "CogniShield",
   "version": "1.0",
   "description": "Detects potential Cognitive Honeypots and displays an alert",
   "permissions": [
