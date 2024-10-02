@@ -1,4 +1,4 @@
-// Enhanced Cognitive Honeypot Detection Heuristics
+// Cognitive Honeypot Detection Heuristics
 const HEURISTICS = {
   URGENCY_WORDS: ['limited time', 'act now', 'don\'t miss out', 'hurry', 'last chance', 'ending soon', 'only today', 'flash sale'],
   REWARD_WORDS: ['free', 'bonus', 'instant', 'guaranteed', 'exclusive', 'special offer', 'discount', 'save big'],
@@ -30,6 +30,7 @@ const HEURISTIC_WEIGHTS = {
 
 let lastResult = null;
 let currentSensitivity = 65; // Default sensitivity
+let alertBar = null;
 
 function calculateTextScores(text) {
   const lowerText = text.toLowerCase();
@@ -47,7 +48,7 @@ function calculateTextScores(text) {
 function analyzeDOMComplexity() {
   const depthThreshold = 15;
   const nodeCountThreshold = 2000;
-  
+
   let maxDepth = 0;
   let nodeCount = 0;
   let suspiciousStructures = 0;
@@ -102,10 +103,10 @@ function detectHiddenContent() {
 function detectTimePressureElements() {
   const timerRegex = /(\d+\s*:\s*){2,3}\d+/;
   const timerPresence = document.body.innerText.match(timerRegex) ? 1 : 0;
-  
+
   const scarcityRegex = /only\s+\d+\s+left|last\s+\d+\s+available|selling fast|almost gone/i;
   const scarcityPresence = document.body.innerText.match(scarcityRegex) ? 1 : 0;
-  
+
   const countdownElements = document.querySelectorAll('[data-countdown], [class*="countdown"], [id*="countdown"]');
   const countdownPresence = countdownElements.length > 0 ? 1 : 0;
 
@@ -134,7 +135,7 @@ function analyzeFormComplexity() {
 
 function detectLayoutManipulation() {
   let score = 0;
-  
+
   const stickyElements = document.querySelectorAll('*');
   stickyElements.forEach(el => {
     const style = window.getComputedStyle(el);
@@ -142,7 +143,7 @@ function detectLayoutManipulation() {
       score++;
     }
   });
-  
+
   const bodyStyle = window.getComputedStyle(document.body);
   if (bodyStyle.overflow === 'hidden' || bodyStyle.position === 'fixed') {
     score++;
@@ -152,23 +153,23 @@ function detectLayoutManipulation() {
   if (popups.length > 0) {
     score++;
   }
-  
+
   return Math.min(score, 3);
 }
 
 function detectDarkPatterns() {
   let score = 0;
-  
+
   const urgencyRegex = /only\s+\d+\s+viewing now|high demand|popular choice/i;
   if (document.body.innerText.match(urgencyRegex)) score++;
-  
+
   const subscriptionForms = document.querySelectorAll('form:not([action*="unsubscribe"])');
   subscriptionForms.forEach(form => {
     if (form.innerHTML.toLowerCase().includes('credit card') || form.innerHTML.toLowerCase().includes('payment')) {
       score++;
     }
   });
-  
+
   const checkboxes = document.querySelectorAll('input[type="checkbox"]');
   checkboxes.forEach(checkbox => {
     const label = checkbox.closest('label') || document.querySelector(`label[for="${checkbox.id}"]`);
@@ -179,28 +180,28 @@ function detectDarkPatterns() {
 
   const confirmShaming = /no thanks|i don't want|not interested/i;
   if (document.body.innerText.match(confirmShaming)) score++;
-  
+
   return Math.min(score, 4);
 }
 
 function analyzeSecurityIndicators() {
   let score = 0;
-  
+
   if (window.location.protocol !== 'https:') score++;
-  
+
   const scripts = document.querySelectorAll('script[src]');
   scripts.forEach(script => {
     if (!script.src.startsWith(window.location.origin) && !script.src.startsWith('https://')) {
       score++;
     }
   });
-  
+
   const iframes = document.querySelectorAll('iframe');
   if (iframes.length > 3) score++;
 
   const externalLinks = document.querySelectorAll('a[href^="http"]:not([href^="' + window.location.origin + '"])');
   if (externalLinks.length > 20) score++;
-  
+
   return Math.min(score, 4);
 }
 
@@ -233,19 +234,15 @@ function detectClickbait() {
 function analyzePrivacyInvasion() {
   let score = 0;
 
-  // Check for excessive cookie usage
   const cookieConsent = document.body.innerText.toLowerCase().includes('cookie') && document.body.innerText.toLowerCase().includes('consent');
   if (cookieConsent) score++;
 
-  // Check for requests for unnecessary personal information
   const personalInfoFields = document.querySelectorAll('input[type="text"], input[type="email"], input[type="tel"], input[type="number"]');
   if (personalInfoFields.length > 5) score++;
 
-  // Check for social media integration
   const socialMediaButtons = document.querySelectorAll('a[href*="facebook"], a[href*="twitter"], a[href*="linkedin"], a[href*="instagram"]');
   if (socialMediaButtons.length > 3) score++;
 
-  // Check for location requests
   if (document.body.innerText.toLowerCase().includes('location') && document.body.innerText.toLowerCase().includes('allow')) score++;
 
   return Math.min(score, 4);
@@ -282,37 +279,104 @@ function detectCognitiveHoneypot() {
   };
 }
 
-function detectCognitiveHoneypot() {
-  const pageText = document.body.innerText;
-  const textScores = calculateTextScores(pageText);
+function createAlertBar(score) {
+  if (alertBar) {
+    document.body.removeChild(alertBar);
+  }
 
-  const scores = {
-    ...textScores,
-    domComplexityScore: analyzeDOMComplexity(),
-    hiddenContentScore: detectHiddenContent(),
-    timerPresenceScore: detectTimePressureElements(),
-    excessiveFormFieldsScore: analyzeFormComplexity(),
-    layoutManipulationScore: detectLayoutManipulation(),
-    darkPatternScore: detectDarkPatterns(),
-    securityIndicatorScore: analyzeSecurityIndicators(),
-    clickbaitScore: detectClickbait(),
-    privacyInvasionScore: analyzePrivacyInvasion()
-  };
+  alertBar = document.createElement('div');
+  alertBar.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background-color: #ff4d4d;
+    color: white;
+    text-align: center;
+    padding: 10px;
+    font-family: Arial, sans-serif;
+    font-size: 16px;
+    z-index: 9999;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  `;
+  alertBar.innerHTML = `
+    <strong>Warning:</strong> Potential Cognitive Honeypot Detected (Score: ${score})
+    <button id="chd-close-alert" style="
+      float: right;
+      background: none;
+      border: none;
+      color: white;
+      font-size: 20px;
+      cursor: pointer;
+    ">&times;</button>
+  `;
+  document.body.insertBefore(alertBar, document.body.firstChild);
 
-  const totalScore = Object.entries(scores).reduce((sum, [key, value]) => {
-    return sum + (value * (HEURISTIC_WEIGHTS[key] || 1));
-  }, 0);
-
-  const maxPossibleScore = Object.values(HEURISTIC_WEIGHTS).reduce((a, b) => a + b, 0) * 4;
-  const normalizedScore = (totalScore / maxPossibleScore) * 100;
-
-  return {
-    isHoneypot: normalizedScore > currentSensitivity,
-    score: normalizedScore.toFixed(2),
-    details: scores
-  };
+  document.getElementById('chd-close-alert').addEventListener('click', function() {
+    document.body.removeChild(alertBar);
+    alertBar = null;
+  });
 }
 
+function updateBadgeAndNotify(result) {
+  if (result.isHoneypot) {
+    chrome.runtime.sendMessage({
+      action: "updateBadge",
+      data: { text: result.score.toString(), color: "#FF0000" }
+    });
+    createAlertBar(result.score);
+  } else {
+    chrome.runtime.sendMessage({
+      action: "updateBadge",
+      data: { text: "", color: "#00FF00" }
+    });
+    if (alertBar) {
+      document.body.removeChild(alertBar);
+      alertBar = null;
+    }
+  }
+}
+
+function performDetection() {
+  const result = detectCognitiveHoneypot();
+  lastResult = result;
+  updateBadgeAndNotify(result);
+  return result;
+}
+
+// Perform initial detection
+lastResult = performDetection();
+
+// Listen for messages from the popup
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === "getResults") {
+    sendResponse(performDetection());
+  }
+  return true;  // Indicates that the response is sent asynchronously
+});
+
+// Listen for sensitivity changes
+chrome.storage.onChanged.addListener((changes, namespace) => {
+  if (namespace === 'sync' && changes.sensitivity) {
+    currentSensitivity = Number(changes.sensitivity.newValue);
+    performDetection();
+  }
+});
+
+// Throttled check on user interaction
+const throttledCheck = throttle(performDetection, 5000);
+document.addEventListener('click', throttledCheck);
+document.addEventListener('scroll', throttledCheck);
+
+// Load initial sensitivity setting
+chrome.storage.sync.get('sensitivity', function(data) {
+  if (data.sensitivity) {
+    currentSensitivity = Number(data.sensitivity);
+    performDetection();
+  }
+});
+
+// Throttle function definition
 function throttle(func, limit) {
   let inThrottle;
   return function() {
@@ -326,69 +390,5 @@ function throttle(func, limit) {
   }
 }
 
-function updateBadgeAndNotify(result) {
-    if (result.isHoneypot) {
-        chrome.runtime.sendMessage({
-            action: "updateBadge",
-            data: { text: result.score.toString(), color: "#FF0000" }
-        });
-    } else {
-        chrome.runtime.sendMessage({
-            action: "updateBadge",
-            data: { text: "", color: "#00FF00" }
-        });
-    }
-}
-
-function performDetection() {
-    const result = detectCognitiveHoneypot();
-    lastResult = result;
-    updateBadgeAndNotify(result);
-    return result;
-}
-
-// Perform initial detection
-lastResult = performDetection();
-
-// Listen for messages from the popup
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.action === "getResults") {
-        sendResponse(performDetection());
-    }
-    return true;  // Indicates that the response is sent asynchronously
-});
-
-// Listen for sensitivity changes
-chrome.storage.onChanged.addListener((changes, namespace) => {
-    if (namespace === 'sync' && changes.sensitivity) {
-        currentSensitivity = Number(changes.sensitivity.newValue);
-        performDetection();
-    }
-});
-
-// Throttled check on user interaction
-const throttledCheck = throttle(performDetection, 5000);
-document.addEventListener('click', throttledCheck);
-document.addEventListener('scroll', throttledCheck);
-
-// Load initial sensitivity setting
-chrome.storage.sync.get('sensitivity', function(data) {
-    if (data.sensitivity) {
-        currentSensitivity = Number(data.sensitivity);
-        performDetection();
-    }
-});
-
-// Throttle function definition
-function throttle(func, limit) {
-    let inThrottle;
-    return function() {
-        const args = arguments;
-        const context = this;
-        if (!inThrottle) {
-            func.apply(context, args);
-            inThrottle = true;
-            setTimeout(() => inThrottle = false, limit);
-        }
-    }
-}
+// Make detectCognitiveHoneypot available globally for the popup to check
+window.detectCognitiveHoneypot = detectCognitiveHoneypot;
