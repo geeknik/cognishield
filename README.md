@@ -1,4 +1,4 @@
-# CogniShield: Honeypot Detector
+# CogniShield: Cognitive Honeypot Detector
 
 CogniShield is a powerful browser extension designed to detect and alert users to potential cognitive honeypots while browsing the web. Using advanced heuristics and real-time analysis, CogniShield helps protect users from manipulative and deceptive web practices.
 
